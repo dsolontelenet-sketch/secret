@@ -1,0 +1,1205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WhisperBox — Anonymous Messages</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600&family=Crimson+Pro:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #111118;
+    --surface2: #1a1a24;
+    --border: #2a2a3a;
+    --accent: #c9a84c;
+    --accent2: #8b6fcf;
+    --text: #e8e4d9;
+    --muted: #7a7a8a;
+    --danger: #c94c4c;
+    --success: #4caf72;
+    --glow: rgba(201,168,76,0.15);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Crimson Pro', Georgia, serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 60% 50% at 20% 20%, rgba(139,111,207,0.08) 0%, transparent 60%),
+      radial-gradient(ellipse 50% 40% at 80% 80%, rgba(201,168,76,0.06) 0%, transparent 60%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .page { display: none; position: relative; z-index: 1; min-height: 100vh; }
+  .page.active { display: flex; flex-direction: column; }
+
+  /* ---- LANDING ---- */
+  #page-landing {
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 2rem;
+  }
+
+  .candle-icon {
+    font-size: 3.5rem;
+    display: block;
+    margin-bottom: 1rem;
+    animation: flicker 3s ease-in-out infinite;
+  }
+  @keyframes flicker {
+    0%,100% { opacity: 1; transform: scaleY(1); }
+    50% { opacity: 0.82; transform: scaleY(0.96); }
+    75% { opacity: 0.93; transform: scaleY(1.02); }
+  }
+
+  .logo-wrap { margin-bottom: 3rem; }
+  .logo-wrap h1 {
+    font-family: 'Cinzel', serif;
+    font-size: clamp(2.5rem, 6vw, 4rem);
+    letter-spacing: 0.15em;
+    background: linear-gradient(135deg, var(--accent), #e8c87a, var(--accent2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .logo-wrap p {
+    margin-top: 0.75rem;
+    color: var(--muted);
+    font-style: italic;
+    font-size: 1.1rem;
+    letter-spacing: 0.05em;
+  }
+
+  .landing-options {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    width: 100%;
+    max-width: 340px;
+  }
+
+  .btn {
+    padding: 0.9rem 2rem;
+    border: none;
+    border-radius: 2px;
+    cursor: pointer;
+    font-family: 'Cinzel', serif;
+    font-size: 0.85rem;
+    letter-spacing: 0.12em;
+    transition: all 0.3s ease;
+  }
+  .btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none !important; box-shadow: none !important; }
+
+  .btn-primary {
+    background: linear-gradient(135deg, var(--accent), #b8942e);
+    color: #0a0a0f;
+    font-weight: 600;
+  }
+  .btn-primary:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(201,168,76,0.35); }
+
+  .btn-secondary {
+    background: transparent;
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+  .btn-secondary:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); transform: translateY(-2px); }
+
+  .btn-ghost {
+    background: transparent;
+    color: var(--muted);
+    border: 1px solid transparent;
+    font-size: 0.8rem;
+  }
+  .btn-ghost:hover { color: var(--accent2); }
+
+  .divider {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    color: var(--muted);
+    font-size: 0.8rem;
+    letter-spacing: 0.1em;
+  }
+  .divider::before, .divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* ---- AUTH ---- */
+  #page-login, #page-register {
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+  }
+
+  .auth-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 2.5rem;
+    width: 100%;
+    max-width: 390px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    animation: fadeUp 0.35s ease;
+  }
+  @keyframes fadeUp {
+    from { opacity:0; transform:translateY(16px); }
+    to { opacity:1; transform:translateY(0); }
+  }
+
+  .auth-card h2 {
+    font-family: 'Cinzel', serif;
+    font-size: 1.4rem;
+    letter-spacing: 0.1em;
+    color: var(--accent);
+    margin-bottom: 0.4rem;
+  }
+  .auth-card p.sub { color: var(--muted); font-size: 0.95rem; font-style: italic; margin-bottom: 2rem; }
+
+  .form-group { margin-bottom: 1.25rem; }
+  .form-group label {
+    display: block;
+    font-size: 0.72rem;
+    letter-spacing: 0.14em;
+    color: var(--muted);
+    margin-bottom: 0.5rem;
+    font-family: 'Cinzel', serif;
+  }
+  .form-group input {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    padding: 0.75rem 1rem;
+    color: var(--text);
+    font-family: 'Crimson Pro', serif;
+    font-size: 1rem;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    outline: none;
+  }
+  .form-group input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--glow); }
+
+  .error-msg {
+    color: var(--danger);
+    font-size: 0.85rem;
+    margin-top: 0.75rem;
+    display: none;
+    background: rgba(201,76,76,0.08);
+    border: 1px solid rgba(201,76,76,0.25);
+    border-radius: 2px;
+    padding: 0.6rem 0.85rem;
+  }
+
+  .auth-footer { margin-top: 1.5rem; text-align: center; font-size: 0.9rem; color: var(--muted); }
+  .auth-footer a { color: var(--accent); cursor: pointer; }
+  .auth-footer a:hover { text-decoration: underline; }
+
+  /* ---- SUCCESS OVERLAY ---- */
+  #register-success-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    background: rgba(10,10,15,0.94);
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    text-align: center;
+  }
+  #register-success-overlay.show { display: flex; animation: fadeIn 0.3s ease; }
+  @keyframes fadeIn { from{opacity:0} to{opacity:1} }
+
+  .success-card {
+    background: var(--surface);
+    border: 1px solid var(--success);
+    border-radius: 6px;
+    padding: 3rem 2.5rem;
+    max-width: 380px;
+    width: 90%;
+    box-shadow: 0 0 80px rgba(76,175,114,0.18), 0 20px 60px rgba(0,0,0,0.5);
+    animation: popIn 0.45s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  }
+  @keyframes popIn {
+    from { transform: scale(0.75); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+  }
+
+  .success-check { font-size: 4rem; margin-bottom: 1rem; display: block; animation: bounceCheck 0.5s 0.3s both; }
+  @keyframes bounceCheck {
+    0% { transform: scale(0) rotate(-15deg); }
+    70% { transform: scale(1.2) rotate(5deg); }
+    100% { transform: scale(1) rotate(0deg); }
+  }
+
+  .success-card h2 {
+    font-family: 'Cinzel', serif;
+    font-size: 1.6rem;
+    color: var(--success);
+    letter-spacing: 0.1em;
+    margin-bottom: 0.75rem;
+  }
+  .success-card p { color: var(--muted); font-style: italic; font-size: 1rem; }
+  .success-username {
+    color: var(--accent);
+    font-family: 'Cinzel', serif;
+    font-size: 1.2rem;
+    letter-spacing: 0.12em;
+    display: block;
+    margin: 0.5rem 0 1.5rem;
+  }
+
+  .progress-bar {
+    width: 100%;
+    height: 3px;
+    background: var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+    margin-top: 1.5rem;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--success), #7ad87a);
+    width: 0%;
+  }
+
+  /* ---- DASHBOARD ---- */
+  #page-dashboard { flex-direction: column; }
+
+  .topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 1.5rem;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    flex-shrink: 0;
+  }
+
+  .topbar-brand {
+    font-family: 'Cinzel', serif;
+    font-size: 1.1rem;
+    letter-spacing: 0.15em;
+    color: var(--accent);
+  }
+
+  .topbar-right {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    flex-wrap: wrap;
+  }
+
+  .topbar-username {
+    font-style: italic;
+    font-size: 0.9rem;
+    color: var(--accent);
+  }
+
+  .share-btn, .logout-btn {
+    font-family: 'Cinzel', serif;
+    font-size: 0.68rem;
+    letter-spacing: 0.1em;
+    border-radius: 2px;
+    padding: 0.4rem 0.85rem;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .share-btn {
+    color: var(--text);
+    background: var(--surface2);
+    border: 1px solid var(--border);
+  }
+  .share-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .logout-btn {
+    color: var(--muted);
+    background: transparent;
+    border: 1px solid var(--border);
+  }
+  .logout-btn:hover { border-color: var(--danger); color: var(--danger); }
+
+  .dashboard-body {
+    display: grid;
+    grid-template-columns: 300px 1fr;
+    flex: 1;
+    height: calc(100vh - 61px);
+    overflow: hidden;
+  }
+
+  /* Sidebar */
+  .sidebar {
+    border-right: 1px solid var(--border);
+    overflow-y: auto;
+    background: var(--surface);
+    display: flex;
+    flex-direction: column;
+  }
+
+  .sidebar-header {
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid var(--border);
+    font-family: 'Cinzel', serif;
+    font-size: 0.7rem;
+    letter-spacing: 0.14em;
+    color: var(--muted);
+    flex-shrink: 0;
+  }
+
+  #convo-list { flex: 1; overflow-y: auto; }
+
+  .convo-item {
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    transition: background 0.15s;
+    position: relative;
+  }
+  .convo-item:hover { background: var(--surface2); }
+  .convo-item.active { background: var(--surface2); border-left: 3px solid var(--accent); }
+
+  .convo-label {
+    font-family: 'Cinzel', serif;
+    font-size: 0.76rem;
+    letter-spacing: 0.06em;
+    color: var(--accent2);
+    margin-bottom: 0.3rem;
+  }
+
+  .convo-preview {
+    font-size: 0.88rem;
+    color: var(--muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-style: italic;
+  }
+
+  .unread-dot {
+    position: absolute;
+    top: 50%;
+    right: 1.25rem;
+    transform: translateY(-50%);
+    width: 8px; height: 8px;
+    background: var(--accent);
+    border-radius: 50%;
+    box-shadow: 0 0 8px rgba(201,168,76,0.7);
+  }
+
+  /* Chat */
+  .chat-area {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .chat-header {
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    background: var(--surface);
+    flex-shrink: 0;
+  }
+
+  .mystery-avatar {
+    width: 40px; height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent2), #3a2a6a);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.15rem;
+    flex-shrink: 0;
+    box-shadow: 0 0 14px rgba(139,111,207,0.35);
+  }
+
+  .chat-header-info h3 {
+    font-family: 'Cinzel', serif;
+    font-size: 0.9rem;
+    letter-spacing: 0.08em;
+  }
+  .chat-header-info p { font-size: 0.8rem; color: var(--muted); font-style: italic; }
+
+  .messages-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+  }
+
+  .message-bubble {
+    max-width: 70%;
+    padding: 0.8rem 1.1rem;
+    border-radius: 2px;
+    animation: msgIn 0.25s ease;
+  }
+  @keyframes msgIn {
+    from { opacity:0; transform:translateY(6px); }
+    to { opacity:1; transform:translateY(0); }
+  }
+
+  .message-bubble.incoming {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent2);
+    align-self: flex-start;
+  }
+
+  .message-bubble.outgoing {
+    background: rgba(201,168,76,0.09);
+    border: 1px solid rgba(201,168,76,0.22);
+    border-right: 3px solid var(--accent);
+    align-self: flex-end;
+  }
+
+  .message-text { font-size: 1rem; line-height: 1.65; color: var(--text); word-break: break-word; }
+  .message-meta { font-size: 0.72rem; color: var(--muted); margin-top: 0.35rem; font-style: italic; }
+
+  .chat-input-area {
+    padding: 1rem 1.5rem;
+    border-top: 1px solid var(--border);
+    display: flex;
+    gap: 0.75rem;
+    background: var(--surface);
+    flex-shrink: 0;
+  }
+
+  .chat-input {
+    flex: 1;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    padding: 0.75rem 1rem;
+    color: var(--text);
+    font-family: 'Crimson Pro', serif;
+    font-size: 1rem;
+    resize: none;
+    outline: none;
+    transition: border-color 0.2s;
+    max-height: 120px;
+  }
+  .chat-input:focus { border-color: var(--accent); }
+
+  .send-btn {
+    padding: 0.75rem 1.35rem;
+    background: linear-gradient(135deg, var(--accent), #b8942e);
+    color: #0a0a0f;
+    border: none;
+    border-radius: 2px;
+    cursor: pointer;
+    font-family: 'Cinzel', serif;
+    font-size: 0.72rem;
+    letter-spacing: 0.12em;
+    font-weight: 600;
+    transition: all 0.2s;
+    white-space: nowrap;
+    align-self: flex-end;
+  }
+  .send-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 15px rgba(201,168,76,0.3); }
+
+  .empty-state {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: var(--muted);
+    text-align: center;
+    padding: 2rem;
+  }
+  .empty-state .icon { font-size: 3.5rem; margin-bottom: 1.25rem; opacity: 0.3; }
+  .empty-state p { font-style: italic; font-size: 1rem; line-height: 1.8; }
+
+  #chat-view { display:none; flex-direction:column; flex:1; overflow:hidden; }
+
+  /* ---- ANON PAGE ---- */
+  #page-anon {
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+  }
+
+  .anon-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 2.5rem;
+    width: 100%;
+    max-width: 480px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    animation: fadeUp 0.35s ease;
+  }
+
+  .anon-card h2 {
+    font-family: 'Cinzel', serif;
+    font-size: 1.3rem;
+    letter-spacing: 0.1em;
+    color: var(--accent2);
+    margin-bottom: 0.5rem;
+  }
+  .anon-card p.sub { color: var(--muted); font-style: italic; margin-bottom: 2rem; font-size: 0.95rem; }
+
+  .section-label {
+    font-family: 'Cinzel', serif;
+    font-size: 0.7rem;
+    letter-spacing: 0.14em;
+    color: var(--muted);
+    display: block;
+    margin-bottom: 0.6rem;
+  }
+
+  .user-select-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+    max-height: 180px;
+    overflow-y: auto;
+  }
+
+  .user-chip {
+    padding: 0.6rem 0.8rem;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    cursor: pointer;
+    font-size: 0.88rem;
+    text-align: center;
+    transition: all 0.2s;
+    color: var(--text);
+  }
+  .user-chip:hover { border-color: var(--accent2); color: var(--accent2); }
+  .user-chip.selected { border-color: var(--accent2); background: rgba(139,111,207,0.15); color: var(--accent2); }
+
+  .anon-textarea {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    padding: 0.85rem 1rem;
+    color: var(--text);
+    font-family: 'Crimson Pro', serif;
+    font-size: 1rem;
+    resize: none;
+    outline: none;
+    min-height: 120px;
+    transition: border-color 0.2s;
+    margin-bottom: 1rem;
+  }
+  .anon-textarea:focus { border-color: var(--accent2); }
+
+  .anon-success-msg {
+    background: rgba(76,175,114,0.1);
+    border: 1px solid rgba(76,175,114,0.3);
+    border-radius: 2px;
+    padding: 0.85rem 1rem;
+    color: #7ad87a;
+    font-size: 0.95rem;
+    margin-top: 1rem;
+    display: none;
+    font-style: italic;
+    text-align: center;
+  }
+
+  /* ---- TOAST ---- */
+  .toast {
+    position: fixed;
+    bottom: 2rem;
+    right: 2rem;
+    background: var(--surface);
+    border: 1px solid var(--accent);
+    border-radius: 2px;
+    padding: 0.85rem 1.25rem;
+    font-size: 0.9rem;
+    color: var(--text);
+    z-index: 400;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+    transform: translateY(20px);
+    opacity: 0;
+    transition: all 0.3s ease;
+    max-width: 300px;
+  }
+  .toast.show { transform: translateY(0); opacity: 1; }
+  .toast.error { border-color: var(--danger); }
+
+  /* Spinner */
+  .spinner {
+    display: inline-block;
+    width: 13px; height: 13px;
+    border: 2px solid rgba(10,10,15,0.3);
+    border-top-color: #0a0a0f;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    vertical-align: middle;
+    margin-right: 5px;
+  }
+  .spinner.light {
+    border-color: rgba(255,255,255,0.2);
+    border-top-color: var(--muted);
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  @media (max-width: 680px) {
+    .dashboard-body {
+      grid-template-columns: 1fr;
+      grid-template-rows: auto 1fr;
+    }
+    .sidebar { max-height: 220px; border-right: none; border-bottom: 1px solid var(--border); }
+  }
+</style>
+</head>
+<body>
+
+<!-- LANDING -->
+<div class="page active" id="page-landing">
+  <span class="candle-icon">🕯️</span>
+  <div class="logo-wrap">
+    <h1>WhisperBox</h1>
+    <p>Secrets delivered in silence</p>
+  </div>
+  <div class="landing-options">
+    <button class="btn btn-primary" onclick="showPage('page-login')">Sign In to My Inbox</button>
+    <button class="btn btn-secondary" onclick="showPage('page-register')">Create an Account</button>
+    <div class="divider">or</div>
+    <button class="btn btn-ghost" onclick="goAnon()">📨 Send an Anonymous Message</button>
+  </div>
+</div>
+
+<!-- LOGIN -->
+<div class="page" id="page-login">
+  <div class="auth-card">
+    <h2>Welcome Back</h2>
+    <p class="sub">Your secrets await you</p>
+    <div class="form-group">
+      <label>USERNAME</label>
+      <input type="text" id="login-username" placeholder="your username" autocomplete="username">
+    </div>
+    <div class="form-group">
+      <label>PASSWORD</label>
+      <input type="password" id="login-password" placeholder="••••••••" autocomplete="current-password"
+        onkeydown="if(event.key==='Enter') doLogin()">
+    </div>
+    <div class="error-msg" id="login-error"></div>
+    <button class="btn btn-primary" style="width:100%;margin-top:1rem" id="login-btn" onclick="doLogin()">Enter</button>
+    <div class="auth-footer">
+      No account? <a onclick="showPage('page-register')">Create one</a> &nbsp;·&nbsp; <a onclick="showPage('page-landing')">Back</a>
+    </div>
+  </div>
+</div>
+
+<!-- REGISTER -->
+<div class="page" id="page-register">
+  <div class="auth-card">
+    <h2>Create Account</h2>
+    <p class="sub">Choose your identity carefully</p>
+    <div class="form-group">
+      <label>USERNAME</label>
+      <input type="text" id="reg-username" placeholder="letters, numbers, underscores" autocomplete="username">
+    </div>
+    <div class="form-group">
+      <label>PASSWORD</label>
+      <input type="password" id="reg-password" placeholder="minimum 6 characters" autocomplete="new-password">
+    </div>
+    <div class="form-group">
+      <label>CONFIRM PASSWORD</label>
+      <input type="password" id="reg-confirm" placeholder="••••••••" autocomplete="new-password"
+        onkeydown="if(event.key==='Enter') doRegister()">
+    </div>
+    <div class="error-msg" id="reg-error"></div>
+    <button class="btn btn-primary" style="width:100%;margin-top:1rem" id="reg-btn" onclick="doRegister()">Register</button>
+    <div class="auth-footer">
+      Already have an account? <a onclick="showPage('page-login')">Sign in</a> &nbsp;·&nbsp; <a onclick="showPage('page-landing')">Back</a>
+    </div>
+  </div>
+</div>
+
+<!-- REGISTER SUCCESS OVERLAY -->
+<div id="register-success-overlay">
+  <div class="success-card">
+    <span class="success-check">✅</span>
+    <h2>Registration Done!</h2>
+    <p>Welcome to WhisperBox,</p>
+    <span class="success-username" id="success-username-display"></span>
+    <p>Your inbox is ready. Taking you there now...</p>
+    <div class="progress-bar">
+      <div class="progress-fill" id="progress-fill"></div>
+    </div>
+  </div>
+</div>
+
+<!-- DASHBOARD -->
+<div class="page" id="page-dashboard">
+  <div class="topbar">
+    <div class="topbar-brand">🕯️ WhisperBox</div>
+    <div class="topbar-right">
+      <span class="topbar-username" id="dash-username"></span>
+      <button class="share-btn" onclick="copyShareLink()">📎 Copy Share Link</button>
+      <button class="logout-btn" onclick="doLogout()">Logout</button>
+    </div>
+  </div>
+  <div class="dashboard-body">
+    <div class="sidebar">
+      <div class="sidebar-header">📬 Anonymous Messages</div>
+      <div id="convo-list"></div>
+    </div>
+    <div class="chat-area">
+      <div class="empty-state" id="empty-state">
+        <div class="icon">🌑</div>
+        <p>No conversation selected.<br><br>
+          Share your link so strangers<br>can whisper to you anonymously.</p>
+      </div>
+      <div id="chat-view">
+        <div class="chat-header">
+          <div class="mystery-avatar">👤</div>
+          <div class="chat-header-info">
+            <h3>Anonymous Stranger</h3>
+            <p>Their identity is hidden forever</p>
+          </div>
+        </div>
+        <div class="messages-list" id="messages-list"></div>
+        <div class="chat-input-area">
+          <textarea class="chat-input" id="reply-input"
+            placeholder="Write your reply... (Enter to send, Shift+Enter for new line)"
+            rows="1"
+            onkeydown="handleReplyKey(event)"></textarea>
+          <button class="send-btn" onclick="sendReply()">SEND</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ANONYMOUS SEND PAGE -->
+<div class="page" id="page-anon">
+  <div class="anon-card">
+    <h2>🌑 Send Anonymously</h2>
+    <p class="sub">Your identity will never be revealed. Ever.</p>
+    <span class="section-label">CHOOSE RECIPIENT</span>
+    <div class="user-select-grid" id="user-grid">
+      <div style="color:var(--muted);font-style:italic;font-size:0.85rem;grid-column:1/-1">
+        <span class="spinner light"></span> Loading users...
+      </div>
+    </div>
+    <span class="section-label">YOUR SECRET MESSAGE</span>
+    <textarea class="anon-textarea" id="anon-message"
+      placeholder="Write your secret message here... they'll never know it's you."></textarea>
+    <button class="btn btn-primary" style="width:100%" id="anon-send-btn" onclick="sendAnonMessage()">
+      Send in Silence 🤫
+    </button>
+    <div class="anon-success-msg" id="anon-success">
+      ✨ Your message was delivered anonymously. They'll never know who sent it.
+    </div>
+    <div class="auth-footer" style="margin-top:1.5rem">
+      <a onclick="showPage('page-landing')">← Back to home</a>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script type="module">
+import { initializeApp }        from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import {
+  getAuth,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  signOut,
+  onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import {
+  getDatabase, ref, set, get, push, onValue, onChildAdded, off
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+/* ── Firebase init ─────────────────────────────────────── */
+const firebaseConfig = {
+  apiKey:            "AIzaSyBAxAI2UQFMsQ0knCPmKTsfNIMwlNzxjMU",
+  authDomain:        "secret-message-e72a9.firebaseapp.com",
+  projectId:         "secret-message-e72a9",
+  storageBucket:     "secret-message-e72a9.firebasestorage.app",
+  messagingSenderId: "278593417285",
+  appId:             "1:278593417285:web:7a01c6eecb49e73763732c",
+  measurementId:     "G-JC5LRPZW20",
+  databaseURL:       "https://secret-message-e72a9-default-rtdb.firebaseio.com"
+};
+
+const fbApp = initializeApp(firebaseConfig);
+const auth  = getAuth(fbApp);
+const db    = getDatabase(fbApp);
+
+/* ── State ─────────────────────────────────────────────── */
+let currentUser      = null;   // { uid, username }
+let currentConvoId   = null;
+let convoUnsubscribe = null;   // unsubscribe fn for active chat listener
+
+/* ── DOM helpers ───────────────────────────────────────── */
+const $ = id => document.getElementById(id);
+
+window.showPage = id => {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  $(id).classList.add('active');
+};
+
+window.showToast = (msg, isError = false, ms = 3200) => {
+  const t = $('toast');
+  t.textContent = msg;
+  t.className   = 'toast show' + (isError ? ' error' : '');
+  clearTimeout(t._t);
+  t._t = setTimeout(() => t.classList.remove('show'), ms);
+};
+
+const showErr   = (id, msg) => { const e=$(id); e.textContent=msg; e.style.display='block'; };
+const clearErr  = id        => { $(id).style.display='none'; };
+const setBtn    = (id, busy, label) => {
+  const b = $(id);
+  b.disabled = busy;
+  b.innerHTML = busy ? `<span class="spinner"></span>${label}` : label;
+};
+
+const usernameToEmail = u => `${u}@whisperbox.app`;
+
+/* ── Auth observer ─────────────────────────────────────── */
+onAuthStateChanged(auth, async user => {
+  if (!user) return;                             // not signed in – do nothing
+  const snap = await get(ref(db, `users/${user.uid}/username`));
+  const username = snap.exists() ? snap.val() : user.email.split('@')[0];
+  currentUser = { uid: user.uid, username };
+  $('dash-username').textContent = username;
+  showPage('page-dashboard');
+  loadConversations();
+});
+
+/* ── REGISTER ──────────────────────────────────────────── */
+window.doRegister = async () => {
+  const username = $('reg-username').value.trim().toLowerCase();
+  const password = $('reg-password').value;
+  const confirm  = $('reg-confirm').value;
+  clearErr('reg-error');
+
+  if (!username || username.length < 3)
+    return showErr('reg-error', 'Username must be at least 3 characters.');
+  if (!/^[a-z0-9_]+$/.test(username))
+    return showErr('reg-error', 'Only lowercase letters, numbers, and underscores.');
+  if (password.length < 6)
+    return showErr('reg-error', 'Password must be at least 6 characters.');
+  if (password !== confirm)
+    return showErr('reg-error', 'Passwords do not match.');
+
+  setBtn('reg-btn', true, 'Creating account…');
+
+  try {
+    /* Check username uniqueness */
+    const taken = await get(ref(db, `usernames/${username}`));
+    if (taken.exists()) {
+      setBtn('reg-btn', false, 'Register');
+      return showErr('reg-error', 'That username is already taken.');
+    }
+
+    const cred = await createUserWithEmailAndPassword(auth, usernameToEmail(username), password);
+    const uid  = cred.user.uid;
+
+    /* Save profile */
+    await set(ref(db, `users/${uid}`),         { username, createdAt: Date.now() });
+    await set(ref(db, `usernames/${username}`), uid);
+
+    /* Show success overlay, then go to dashboard */
+    showRegisterSuccess(username);
+
+  } catch (e) {
+    setBtn('reg-btn', false, 'Register');
+    const msgs = {
+      'auth/email-already-in-use': 'That username is already registered.',
+      'auth/invalid-email':        'Invalid username format.',
+      'auth/weak-password':        'Password is too weak.'
+    };
+    showErr('reg-error', msgs[e.code] || e.message);
+  }
+};
+
+function showRegisterSuccess(username) {
+  $('success-username-display').textContent = username;
+
+  const overlay = $('register-success-overlay');
+  const fill    = $('progress-fill');
+
+  overlay.classList.add('show');
+
+  /* Animate progress bar */
+  fill.style.transition = 'none';
+  fill.style.width      = '0%';
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      fill.style.transition = 'width 2.8s linear';
+      fill.style.width      = '100%';
+    });
+  });
+
+  setTimeout(() => {
+    overlay.classList.remove('show');
+    setBtn('reg-btn', false, 'Register');
+    $('reg-username').value = $('reg-password').value = $('reg-confirm').value = '';
+    /* onAuthStateChanged already switched to dashboard */
+  }, 3000);
+}
+
+/* ── LOGIN ─────────────────────────────────────────────── */
+window.doLogin = async () => {
+  const username = $('login-username').value.trim().toLowerCase();
+  const password = $('login-password').value;
+  clearErr('login-error');
+
+  if (!username || !password)
+    return showErr('login-error', 'Please fill in all fields.');
+
+  setBtn('login-btn', true, 'Signing in…');
+
+  try {
+    await signInWithEmailAndPassword(auth, usernameToEmail(username), password);
+    $('login-username').value = $('login-password').value = '';
+    setBtn('login-btn', false, 'Enter');
+    /* onAuthStateChanged handles the rest */
+  } catch (e) {
+    setBtn('login-btn', false, 'Enter');
+    showErr('login-error', 'Invalid username or password.');
+  }
+};
+
+/* ── LOGOUT ────────────────────────────────────────────── */
+window.doLogout = async () => {
+  currentUser    = null;
+  currentConvoId = null;
+  if (convoUnsubscribe) { convoUnsubscribe(); convoUnsubscribe = null; }
+  await signOut(auth);
+  showPage('page-landing');
+};
+
+/* ── CONVERSATIONS ─────────────────────────────────────── */
+function loadConversations() {
+  const listEl  = $('convo-list');
+  listEl.innerHTML =
+    '<div style="padding:1rem 1.25rem;color:var(--muted);font-style:italic;font-size:0.85rem">' +
+    '<span class="spinner light"></span> Loading…</div>';
+
+  onValue(ref(db, `inboxes/${currentUser.uid}`), snap => {
+    listEl.innerHTML = '';
+    if (!snap.exists()) {
+      listEl.innerHTML =
+        '<div style="padding:1.1rem 1.25rem;color:var(--muted);font-style:italic;font-size:0.88rem;line-height:1.7">' +
+        'No messages yet.<br>Share your link to receive whispers!</div>';
+      return;
+    }
+
+    const convos = snap.val();
+    Object.entries(convos)
+      .sort(([,a],[,b]) => (b.lastAt||0) - (a.lastAt||0))
+      .forEach(([cid, convo]) => {
+        const el = document.createElement('div');
+        el.className = 'convo-item' + (cid === currentConvoId ? ' active' : '');
+        el.innerHTML = `
+          <div class="convo-label">👤 Unknown #${cid.slice(-5).toUpperCase()}</div>
+          <div class="convo-preview">${escHtml(convo.lastMsg || '…')}</div>
+          ${convo.unread ? '<div class="unread-dot"></div>' : ''}`;
+        el.onclick = () => openConversation(cid, el);
+        listEl.appendChild(el);
+      });
+  });
+}
+
+async function openConversation(convoId, clickedEl) {
+  /* Update sidebar highlight */
+  document.querySelectorAll('.convo-item').forEach(e => e.classList.remove('active'));
+  clickedEl?.classList.add('active');
+
+  currentConvoId = convoId;
+  $('empty-state').style.display  = 'none';
+  $('chat-view').style.display    = 'flex';
+
+  /* Mark read */
+  set(ref(db, `inboxes/${currentUser.uid}/${convoId}/unread`), false);
+
+  const msgList = $('messages-list');
+  msgList.innerHTML = '';
+
+  /* Detach previous realtime listener */
+  if (convoUnsubscribe) { convoUnsubscribe(); convoUnsubscribe = null; }
+
+  const msgsRef = ref(db, `messages/${currentUser.uid}/${convoId}`);
+
+  /* Load existing messages */
+  const snap = await get(msgsRef);
+  const knownKeys = new Set();
+  if (snap.exists()) {
+    Object.entries(snap.val())
+      .sort(([,a],[,b]) => (a.at||0) - (b.at||0))
+      .forEach(([k, m]) => { renderMessage(m, currentUser.uid); knownKeys.add(k); });
+  }
+  msgList.scrollTop = msgList.scrollHeight;
+
+  /* Listen for NEW messages in realtime */
+  let ready = false;
+  setTimeout(() => { ready = true; }, 400);
+
+  const unsub = onChildAdded(msgsRef, (childSnap) => {
+    if (!ready) return;               // skip initial batch
+    if (knownKeys.has(childSnap.key)) return;  // already rendered
+    knownKeys.add(childSnap.key);
+    renderMessage(childSnap.val(), currentUser.uid);
+    msgList.scrollTop = msgList.scrollHeight;
+  });
+  convoUnsubscribe = () => off(msgsRef, 'child_added', unsub);
+}
+
+function renderMessage(msg, myUid) {
+  const isMe = msg.from === myUid || msg.isReply === true && msg.from !== 'anonymous';
+  const div  = document.createElement('div');
+  div.className = 'message-bubble ' + (isMe ? 'outgoing' : 'incoming');
+  div.innerHTML = `
+    <div class="message-text">${escHtml(msg.text)}</div>
+    <div class="message-meta">${isMe ? 'You' : '👤 Anonymous'} · ${fmt(msg.at)}</div>`;
+  $('messages-list').appendChild(div);
+}
+
+window.handleReplyKey = e => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendReply(); }
+};
+
+window.sendReply = async () => {
+  const input = $('reply-input');
+  const text  = input.value.trim();
+  if (!text || !currentConvoId || !currentUser) return;
+  input.value = '';
+
+  const msg = { text, from: currentUser.uid, at: Date.now(), isReply: true };
+  const msgsRef = ref(db, `messages/${currentUser.uid}/${currentConvoId}`);
+  await push(msgsRef, msg);
+
+  /* Render immediately for snappy UX */
+  renderMessage(msg, currentUser.uid);
+  $('messages-list').scrollTop = $('messages-list').scrollHeight;
+
+  /* Update sidebar preview */
+  set(ref(db, `inboxes/${currentUser.uid}/${currentConvoId}/lastMsg`), text);
+  set(ref(db, `inboxes/${currentUser.uid}/${currentConvoId}/lastAt`),  Date.now());
+};
+
+/* ── ANONYMOUS SEND ────────────────────────────────────── */
+window.goAnon = async () => {
+  showPage('page-anon');
+  await loadUserGrid();
+  /* Auto-select from ?to= URL param */
+  const to = new URLSearchParams(location.search).get('to');
+  if (to) document.querySelectorAll('.user-chip').forEach(c => { if (c.dataset.u === to) c.click(); });
+};
+
+async function loadUserGrid() {
+  const grid = $('user-grid');
+  grid.innerHTML = '<div style="color:var(--muted);font-style:italic;font-size:0.85rem;grid-column:1/-1">' +
+                   '<span class="spinner light"></span> Loading users…</div>';
+  const snap = await get(ref(db, 'usernames'));
+  grid.innerHTML = '';
+  if (!snap.exists()) {
+    grid.innerHTML = '<div style="color:var(--muted);font-style:italic;font-size:0.85rem;grid-column:1/-1">No users registered yet.</div>';
+    return;
+  }
+  Object.entries(snap.val()).forEach(([username, uid]) => {
+    const c = document.createElement('div');
+    c.className   = 'user-chip';
+    c.textContent = username;
+    c.dataset.u   = username;
+    c.dataset.uid = uid;
+    c.onclick = () => {
+      document.querySelectorAll('.user-chip').forEach(x => x.classList.remove('selected'));
+      c.classList.add('selected');
+    };
+    grid.appendChild(c);
+  });
+}
+
+window.sendAnonMessage = async () => {
+  const selected = document.querySelector('.user-chip.selected');
+  const text     = $('anon-message').value.trim();
+  $('anon-success').style.display = 'none';
+
+  if (!selected) return showToast('Please select a recipient first.', true);
+  if (!text)     return showToast('Please write a message.', true);
+
+  const recipientUid = selected.dataset.uid;
+  const convoId = 'anon_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+
+  setBtn('anon-send-btn', true, 'Sending…');
+
+  try {
+    const msg = { text, from: 'anonymous', at: Date.now(), isReply: false };
+    await push(ref(db, `messages/${recipientUid}/${convoId}`), msg);
+    await set(ref(db,  `inboxes/${recipientUid}/${convoId}`), {
+      lastMsg: text,
+      lastAt:  Date.now(),
+      unread:  true
+    });
+
+    $('anon-message').value = '';
+    document.querySelectorAll('.user-chip').forEach(c => c.classList.remove('selected'));
+    $('anon-success').style.display = 'block';
+    setTimeout(() => $('anon-success').style.display = 'none', 5000);
+  } catch (e) {
+    showToast('Failed to send: ' + e.message, true);
+  }
+
+  setBtn('anon-send-btn', false, 'Send in Silence 🤫');
+};
+
+/* ── SHARE LINK ────────────────────────────────────────── */
+window.copyShareLink = () => {
+  if (!currentUser) return;
+  const url = `${location.origin}${location.pathname}?to=${currentUser.username}`;
+  navigator.clipboard.writeText(url)
+    .then(() => showToast('✨ Link copied! Share it so anyone can whisper to you.'))
+    .catch(() => showToast(`Your link: ?to=${currentUser.username}`));
+};
+
+/* ── UTILS ─────────────────────────────────────────────── */
+function escHtml(s) {
+  return String(s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/\n/g,'<br>');
+}
+function fmt(ts) {
+  if (!ts) return '';
+  const d   = new Date(ts);
+  const now = new Date();
+  const t   = d.toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' });
+  return d.toDateString() === now.toDateString()
+    ? t
+    : t + ' · ' + d.toLocaleDateString();
+}
+
+/* ── Auto-launch anon page if URL has ?to= ─────────────── */
+window.addEventListener('DOMContentLoaded', () => {
+  if (new URLSearchParams(location.search).get('to') && !auth.currentUser) goAnon();
+});
+</script>
+</body>
+</html>
